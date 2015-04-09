@@ -49,6 +49,7 @@ class Ball:
         self.surface = pygame.image.load(filename)
         self.rect = self.surface.get_rect()
         self.speed = speed
+        self.gravitation = 9.8
         self.pos = pos
         self.newpos = pos
         self.active = True
@@ -77,7 +78,7 @@ class Ball:
             y = surface.get_height() - self.rect.height/2
             dy = -dy
         self.pos = x,y
-        self.speed = dx,dy
+        self.speed = dx, dy + self.gravitation
         self.rect.center = intn(*self.pos)
 
 class Universe:
