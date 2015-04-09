@@ -48,11 +48,13 @@ class Ball:
         self.fname = filename
         self.surface = pygame.image.load(filename)
         self.rect = self.surface.get_rect()
+        self.radius = self.rect.height / 2
         self.speed = speed
         self.gravitation = 9.8
         self.pos = pos
         self.newpos = pos
         self.active = True
+
 
     def draw(self, surface):
         surface.blit(self.surface, self.rect)
@@ -80,6 +82,44 @@ class Ball:
         self.pos = x,y
         self.speed = dx, dy + self.gravitation
         self.rect.center = intn(*self.pos)
+
+class RotatingBall(Ball):
+    """ Rotating ball """
+    def __init__(self, filename, pos = (0.0, 0.0), speed = (0.0, 0.0), speed_angular = 0.0, scale = 1.0):
+        """
+        Rotating ball
+        :param filename: path to file with sprite
+        :param pos: initial position
+        :param speed: initial speed
+        :param speed_angular: initial angular speed degrees per frame
+        :return:
+        """
+        Ball.__init__(self, filename, pos, speed)
+        self.scale = scale
+        self.speed_angular = speed_angular
+        self.original_surface = self.surface
+        self.angle = 0
+        self.radius *= scale
+
+    def logic(self, surface):
+        if self.active:
+            self.angle = RotatingBall.limit(self.angle + self.speed_angular, 360)
+            self.surface = pygame.transform.rotozoom(self.original_surface, self.angle, self.scale)
+            self.rect = self.surface.get_rect()
+        Ball.logic(self, surface)
+
+    @staticmethod
+    def limit(value, limit):
+        """
+        Normalize value to range [0, limit)
+        :param value: value to normalize
+        :param limit: positive limit
+        :return: value in range [0, limit)
+        """
+        return value - limit * int(value / limit)
+
+
+
 
 class Universe:
     '''Game universe'''
@@ -152,7 +192,11 @@ Run = GameWithDnD()
 for i in xrange(5):
     x, y = random.randrange(screenrect.w), random.randrange(screenrect.h)
     dx, dy = 1+random.random()*5, 1+random.random()*5
-    Run.objects.append(Ball("ball.gif",(x,y),(dx,dy)))
+    #Run.objects.append(Ball("ball.gif",(x,y),(dx,dy)))
+    angular = 5 * (random.random() - 0.5)
+    scale = random.random() + 0.5
+    Run.objects.append(RotatingBall("ball.gif",(x,y),(dx,dy), speed_angular=angular, scale=scale))
+
 
 Game.Start()
 Run.Init()
