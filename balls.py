@@ -4,6 +4,10 @@
 import pygame
 import random
 
+import itertools
+import numpy as np
+import math
+
 SIZE = 640, 480
 
 def intn(*arg):
@@ -157,10 +161,55 @@ class GameWithObjects(GameMode):
         for obj in self.objects:
             obj.logic(surface)
 
+        active_objects = filter(lambda obj: obj.active, self.objects)
+        for pair in itertools.combinations(active_objects, 2):
+            collision = self.collision_detect(*pair)
+            if collision:
+                for n, ball in enumerate(pair):
+                    ball.pos = collision['position'][n]
+                    speed = collision['speed'][n]
+                    ball.speed = speed[0] * ball.elasticity, speed[1] * ball.elasticity
+
+
     def Draw(self, surface):
         GameMode.Draw(self, surface)
         for obj in self.objects:
             obj.draw(surface)
+
+
+    @staticmethod
+    def collision_detect(ball_a, ball_b):
+        norm = np.linalg.norm
+        a = np.array(ball_a.pos)
+        b = np.array(ball_b.pos)
+        va = np.array(ball_a.speed)
+        vb = np.array(ball_b.speed)
+        v = va - vb
+        c = b - a
+        v_norm = norm(v)
+        if norm(c) > (v_norm + ball_a.radius + ball_b.radius):
+            return None
+        if np.dot(c, v) <= 0:
+            return None
+        n = v / v_norm
+        d = np.dot(n, c)
+        f_square = norm(c)**2 - d**2
+        sq_distance_smallest = (ball_a.radius + ball_b.radius) ** 2
+        if f_square > sq_distance_smallest:
+            return None
+        distance = d - math.sqrt(sq_distance_smallest - f_square)
+        delta = distance / v_norm
+        collision_a = a + va * delta
+        collision_b = b + vb * delta
+        collision_distance = collision_b - collision_a
+        collision_c = collision_distance / norm(collision_distance)
+        speed_a = - collision_c * norm(va)
+        speed_b = collision_c * norm(vb)
+        return {
+            'delta': delta,
+            'position': (tuple(collision_a), tuple(collision_b)),
+            'speed': (tuple(speed_a), tuple(speed_b))
+        }
 
 class GameWithDnD(GameWithObjects):
 
